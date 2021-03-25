@@ -1,5 +1,6 @@
 from tkinter import *
 
+# Todo Добавить поле для ввода Кода цвета или текстового значения универсального  цвета
 
 class Paint(Frame):
     def __init__(self, parent):
@@ -8,6 +9,9 @@ class Paint(Frame):
         self.setGUI()
         self.brush_size = 10
         self.brush_color = "black"
+        self.connects()
+
+    def connects(self):
         self.canv.bind("<B1-Motion>", self.draw)
 
     def setGUI(self):
@@ -17,21 +21,22 @@ class Paint(Frame):
         self.canv = Canvas(self, bg="white")  # Создаем поле для рисования, устанавливаем белый фон
 
         color_lab = Label(self, text="Color: ")  # Создаем метку для кнопок изменения цвета кисти
-        red_btn = Button(self, text="Red", width=10, bg='red', fg='black')  # Создание кнопки:  Установка текста кнопки,
-        # задание ширины кнопки (10 символов)
-        green_btn = Button(self, text="Green", width=10, bg='green', fg='black')
-        blue_btn = Button(self, text="Blue", width=10, bg='blue', fg='black')
-        black_btn = Button(self, text="Black", width=10, bg='black', fg='black')
-        white_btn = Button(self, text="White", width=10, bg='white', fg='black')
+        red_btn = Button(self, text="Red", width=10, command=lambda: self.set_color("red"),  bg='red', fg='black')
+        # Создание кнопки:  Установка текста кнопки, задание ширины кнопки (10 символов)
+        green_btn = Button(self, text="Green", width=10, command=lambda: self.set_color("green"), bg='green', fg='black')
+        blue_btn = Button(self, text="Blue", width=10, command=lambda: self.set_color("blue"), bg='blue', fg='black')
+        black_btn = Button(self, text="Black", width=10, command=lambda: self.set_color("black"), bg='black', fg='white')
+        white_btn = Button(self, text="White", width=10, command=lambda: self.set_color("white"), bg='white', fg='black')
+        clear_btn = Button(self, text="Clear", width=10, command=lambda: self.canv.delete("all"))
 
         size_lab = Label(self, text="Brush size: ")  # Создаем метку для кнопок изменения размера кисти
-        btn_1 = Button(self, text="Size 1", width=10)
-        btn_2 = Button(self, text="Size 2", width=10)
-        btn_3 = Button(self, text="Size 3", width=10)
-        btn_4 = Button(self, text="Size 4", width=10)
-        btn_5 = Button(self, text="Size 5", width=10)
-        btn_6 = Button(self, text="Size 6", width=10)
-        btn_7 = Button(self, text="Size 7", width=10)
+        btn_1 = Button(self, text="Size 1", width=10, command=lambda: self.set_size(1))
+        btn_2 = Button(self, text="Size 2", width=10, command=lambda: self.set_size(2))
+        btn_3 = Button(self, text="Size 3", width=10, command=lambda: self.set_size(5))
+        btn_4 = Button(self, text="Size 4", width=10, command=lambda: self.set_size(10))
+        btn_5 = Button(self, text="Size 5", width=10, command=lambda: self.set_size(15))
+        btn_6 = Button(self, text="Size 6", width=10, command=lambda: self.set_size(20))
+        btn_7 = Button(self, text="Size 7", width=10, command=lambda: self.set_size(50))
 
         self.columnconfigure(8, weight=1)  # Даем седьмому столбцу возможность растягиваться,
         # благодаря чему кнопки не будут разъезжаться при ресайзе
@@ -49,6 +54,7 @@ class Paint(Frame):
         blue_btn.grid(row=0, column=3)
         black_btn.grid(row=0, column=4)
         white_btn.grid(row=0, column=5)
+        clear_btn.grid(row=0, column=6, sticky=W)
         size_lab.grid(row=1, column=0, padx=5)
         btn_1.grid(row=1, column=1)
         btn_2.grid(row=1, column=2)
@@ -64,6 +70,12 @@ class Paint(Frame):
                               event.x + self.brush_size,
                               event.y + self.brush_size,
                               fill=self.brush_color, outline=self.brush_color)
+
+    def set_color(self, new_color):
+        self.brush_color = new_color
+
+    def set_size(self, new_size):
+        self.brush_size = new_size
 
 
 def main():
