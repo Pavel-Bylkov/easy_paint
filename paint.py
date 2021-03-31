@@ -1,8 +1,8 @@
 from tkinter import *
 
-# Todo Добавить поле для ввода Кода цвета или текстового значения универсального  цвета
 # ToDo Посмотреть возможность отмены последнего действия
 # Todo Реализовать инструмент Заливка
+# Todo Сохранение картинки на диск (Открытие для редактирования)
 
 COLORS = ['snow', 'ghost white', 'white smoke', 'gainsboro', 'floral white', 'old lace',
         'linen', 'antique white', 'papaya whip', 'blanched almond', 'bisque', 'peach puff',
@@ -169,7 +169,6 @@ class Paint(Frame):
                 self.set_color(text)
         except:
             pass
-
 
     def set_size(self, new_size):
         self.brush_size = new_size
