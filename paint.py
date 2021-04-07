@@ -1,6 +1,7 @@
 from tkinter import *
 
-# ToDo Посмотреть возможность отмены последнего действия
+# ToDo Посмотреть возможность отмены последнего действия - исправить Старт и Енд, разнести по времени.
+# возможно заменить словари на отдельный класс Очередь действий
 # Todo Реализовать инструмент Заливка
 # Todo Сохранение картинки на диск (Открытие для редактирования)
 
@@ -81,10 +82,21 @@ COLORS = ['snow', 'ghost white', 'white smoke', 'gainsboro', 'floral white', 'ol
         'gray84', 'gray85', 'gray86', 'gray87', 'gray88', 'gray89', 'gray90', 'gray91', 'gray92',
         'gray93', 'gray94', 'gray95', 'gray97', 'gray98', 'gray99']
 
+
+class My_event():
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+
 class Paint(Frame):
     def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent
+        self.actions = {}
+        self.starts = []
+        self.ends = []
+        self.n_action = 0
         self.sv = StringVar()
         self.setGUI()
         self.brush_size = 10
@@ -93,7 +105,9 @@ class Paint(Frame):
 
 
     def connects(self):
+        self.canv.bind("<Button-1>", self.start)
         self.canv.bind("<B1-Motion>", self.draw)
+        self.canv.bind("<ButtonRelease-1>", self.end)
         self.set_any_color.bind('<Return>', self.callback)
 
     def setGUI(self):
@@ -109,7 +123,7 @@ class Paint(Frame):
         blue_btn = Button(self, text="Blue", width=10, command=lambda: self.set_color("blue"), bg='blue', fg='black')
         black_btn = Button(self, text="Black", width=10, command=lambda: self.set_color("black"), bg='black', fg='white')
         white_btn = Button(self, text="White", width=10, command=lambda: self.set_color("white"), bg='white', fg='black')
-        clear_btn = Button(self, text="Clear", width=10, command=lambda: self.canv.delete("all"))
+        clear_btn = Button(self, text="Clear", width=10, command=lambda: self.clear())
         set_any_color_lb = Label(self, text="Enter your color: ")
         self.set_any_color = Entry(self, width=30, textvariable=self.sv)
 
@@ -121,6 +135,7 @@ class Paint(Frame):
         btn_5 = Button(self, text="Size 5", width=10, command=lambda: self.set_size(15))
         btn_6 = Button(self, text="Size 6", width=10, command=lambda: self.set_size(20))
         btn_7 = Button(self, text="Size 7", width=10, command=lambda: self.set_size(50))
+        undo_btn = Button(self, text="Un do last action", width=20, command=lambda: self.undo())
 
         self.columnconfigure(8, weight=1)  # Даем седьмому столбцу возможность растягиваться,
         # благодаря чему кнопки не будут разъезжаться при ресайзе
@@ -148,9 +163,12 @@ class Paint(Frame):
         btn_4.grid(row=1, column=4)
         btn_5.grid(row=1, column=5)
         btn_6.grid(row=1, column=6)
-        btn_7.grid(row=1, column=7, sticky=W)
+        btn_7.grid(row=1, column=7)
+        undo_btn.grid(row=1, column=8, sticky=W)
 
     def draw(self, event):
+        self.actions[self.n_action] = {'draw': My_event(event.x, event.y)}
+        self.n_action += 1
         self.canv.create_oval(event.x - self.brush_size,
                               event.y - self.brush_size,
                               event.x + self.brush_size,
@@ -158,6 +176,8 @@ class Paint(Frame):
                               fill=self.brush_color, outline=self.brush_color)
 
     def set_color(self, new_color):
+        self.actions[self.n_action] = {'set_color': new_color}
+        self.n_action += 1
         self.brush_color = new_color
 
     def callback(self, event):
@@ -171,7 +191,46 @@ class Paint(Frame):
             pass
 
     def set_size(self, new_size):
+        self.actions[self.n_action] = {'set_size': new_size}
+        self.n_action += 1
         self.brush_size = new_size
+
+    def clear(self):
+        self.actions[self.n_action] = {'clear': 1}
+        self.n_action += 1
+        self.canv.delete("all")
+
+    def undo(self):
+        if self.n_action > 0:
+            self.n_action -= 1
+            if 'draw' in self.actions[self.n_action]:
+                for n_do in range(self.starts.pop(), self.ends.pop() + 1):
+                    del self.actions[n_do]
+                    self.n_action -= 1
+            self.brush_size = 10
+            self.brush_size = 10
+            self.brush_color = "black"
+            self.canv.delete("all")
+            for n_do in range(self.n_action):
+                if not self.actions:
+                    break
+                if 'draw' in self.actions[n_do]:
+                    self.draw(self.actions[n_do]['draw'])
+                if 'set_color' in self.actions[n_do]:
+                    self.set_color(self.actions[n_do]['set_color'])
+                if 'set_size' in self.actions[n_do]:
+                    self.set_size(self.actions[n_do]['set_size'])
+                if 'clear' in self.actions[n_do]:
+                    self.clear()
+
+    def start(self, event):
+        self.starts.append(self.n_action)
+        print("start", self.n_action)
+
+
+    def end(self, event):
+        self.ends.append(self.n_action - 1)
+        print("end ", self.n_action - 1)
 
 
 def main():
