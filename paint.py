@@ -1,7 +1,9 @@
 from tkinter import *
 
-# ToDo Посмотреть возможность отмены последнего действия - исправить Старт и Енд, разнести по времени.
-# возможно заменить словари на отдельный класс Очередь действий
+from PIL import ImageGrab
+
+
+
 # Todo Реализовать инструмент Заливка
 # Todo Сохранение картинки на диск (Открытие для редактирования)
 
@@ -135,6 +137,18 @@ class Paint(Frame):
         self.start_size()
         self.connects()
 
+    def save_image(self):
+        filename = self.sv.get()
+        if filename:
+            filename += ".jpg"
+        else:
+            filename = "image.jpg"
+        x = self.parent.winfo_rootx() + self.canv.winfo_x()
+        y = self.parent.winfo_rooty() + self.canv.winfo_y()
+        x1 = x + self.canv.winfo_width()
+        y1 = y + self.canv.winfo_height()
+        ImageGrab.grab().crop((x, y, x1, y1)).save(filename)
+
     def start_size(self):
         self.brush_size = 10
         self.brush_color = "black"
@@ -171,11 +185,14 @@ class Paint(Frame):
         btn_6 = Button(self, text="Size 6", width=10, command=lambda: self.set_size(20))
         btn_7 = Button(self, text="Size 7", width=10, command=lambda: self.set_size(50))
         undo_btn = Button(self, text="Un do last action", width=20, command=lambda: self.undo())
+        save_lab = Label(self, text="Save image as: ")
+        self.set_filename = Entry(self, width=30, textvariable=self.sv)
+        save_btn = Button(self, text="SAVE", width=20, command=lambda: self.save_image())
 
-        self.columnconfigure(8, weight=1)  # Даем седьмому столбцу возможность растягиваться,
+        self.columnconfigure(11, weight=1)  # Даем седьмому столбцу возможность растягиваться,
         # благодаря чему кнопки не будут разъезжаться при ресайзе
         self.rowconfigure(2, weight=1)  # То же самое для третьего ряда
-        self.canv.grid(row=2, column=0, columnspan=9,
+        self.canv.grid(row=2, column=0, columnspan=12,
                        padx=5, pady=5,
                        sticky=E + W + S + N)  # Прикрепляем канвас методом grid.
         # Он будет находится в 3м ряду, первой колонке, и будет занимать 7 колонок,
@@ -199,7 +216,10 @@ class Paint(Frame):
         btn_5.grid(row=1, column=5)
         btn_6.grid(row=1, column=6)
         btn_7.grid(row=1, column=7)
-        undo_btn.grid(row=1, column=8, sticky=W)
+        undo_btn.grid(row=1, column=8)
+        save_lab.grid(row=1, column=9)
+        self.set_filename.grid(row=1, column=10)
+        save_btn.grid(row=1, column=11, sticky=W)
 
     def draw(self, event):
         self.queve.add('draw', My_event(event.x, event.y))
