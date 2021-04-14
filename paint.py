@@ -89,25 +89,60 @@ class My_event():
         self.y = y
 
 
-class Paint(Frame):
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.parent = parent
+class QueueActions():
+    def __init__(self):
         self.actions = {}
         self.starts = []
         self.ends = []
         self.n_action = 0
+
+    def add(self, action, value):
+        self.actions[self.n_action] = {action: value}
+        self.n_action += 1
+
+    def start(self, event):
+        self.starts.append(self.n_action)
+
+    def end(self, event):
+        self.ends.append(self.n_action - 1)
+
+    def is_empty(self):
+        return self.n_action == 0
+
+    def undo(self):
+        self.n_action -= 1
+        if 'draw' in self.actions[self.n_action]:
+            self.n_action = self.starts.pop()
+            for n_do in range(self.n_action, self.ends.pop() + 1):
+                del self.actions[n_do]
+        else:
+            del self.actions[self.n_action]
+
+    def has_action(self, n_do, action):
+        return action in self.actions[n_do]
+
+    def get_value(self, n_do, action):
+        return self.actions[n_do][action]
+
+
+class Paint(Frame):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.parent = parent
+        self.queve = QueueActions()
         self.sv = StringVar()
         self.setGUI()
-        self.brush_size = 10
-        self.brush_color = "black"
+        self.start_size()
         self.connects()
 
+    def start_size(self):
+        self.brush_size = 10
+        self.brush_color = "black"
 
     def connects(self):
-        self.canv.bind("<Button-1>", self.start)
+        self.canv.bind("<Button-1>", self.queve.start)
         self.canv.bind("<B1-Motion>", self.draw)
-        self.canv.bind("<ButtonRelease-1>", self.end)
+        self.canv.bind("<ButtonRelease-1>", self.queve.end)
         self.set_any_color.bind('<Return>', self.callback)
 
     def setGUI(self):
@@ -167,8 +202,7 @@ class Paint(Frame):
         undo_btn.grid(row=1, column=8, sticky=W)
 
     def draw(self, event):
-        self.actions[self.n_action] = {'draw': My_event(event.x, event.y)}
-        self.n_action += 1
+        self.queve.add('draw', My_event(event.x, event.y))
         self.canv.create_oval(event.x - self.brush_size,
                               event.y - self.brush_size,
                               event.x + self.brush_size,
@@ -176,8 +210,7 @@ class Paint(Frame):
                               fill=self.brush_color, outline=self.brush_color)
 
     def set_color(self, new_color):
-        self.actions[self.n_action] = {'set_color': new_color}
-        self.n_action += 1
+        self.queve.add('set_color', new_color)
         self.brush_color = new_color
 
     def callback(self, event):
@@ -191,46 +224,43 @@ class Paint(Frame):
             pass
 
     def set_size(self, new_size):
-        self.actions[self.n_action] = {'set_size': new_size}
-        self.n_action += 1
+        self.queve.add('set_size', new_size)
         self.brush_size = new_size
 
     def clear(self):
-        self.actions[self.n_action] = {'clear': 1}
-        self.n_action += 1
+        self.queve.add('clear', 1)
         self.canv.delete("all")
 
     def undo(self):
-        if self.n_action > 0:
-            self.n_action -= 1
-            if 'draw' in self.actions[self.n_action]:
-                for n_do in range(self.starts.pop(), self.ends.pop() + 1):
-                    del self.actions[n_do]
-                    self.n_action -= 1
-            self.brush_size = 10
-            self.brush_size = 10
-            self.brush_color = "black"
+        if not self.queve.is_empty():
+            self.queve.undo()
+            self.start_size()
             self.canv.delete("all")
-            for n_do in range(self.n_action):
-                if not self.actions:
-                    break
-                if 'draw' in self.actions[n_do]:
-                    self.draw(self.actions[n_do]['draw'])
-                if 'set_color' in self.actions[n_do]:
-                    self.set_color(self.actions[n_do]['set_color'])
-                if 'set_size' in self.actions[n_do]:
-                    self.set_size(self.actions[n_do]['set_size'])
-                if 'clear' in self.actions[n_do]:
-                    self.clear()
+            for n_do in range(self.queve.n_action):
+                if self.queve.has_action(n_do, 'draw'):
+                    self.draw_copy(self.queve.get_value(n_do, 'draw'))
+                if self.queve.has_action(n_do, 'set_color'):
+                    self.set_color_copy(self.queve.get_value(n_do, 'set_color'))
+                if self.queve.has_action(n_do, 'set_size'):
+                    self.set_size_copy(self.queve.get_value(n_do, 'set_size'))
+                if self.queve.has_action(n_do, 'clear'):
+                    self.clear_copy()
 
-    def start(self, event):
-        self.starts.append(self.n_action)
-        print("start", self.n_action)
+    def draw_copy(self, event):
+        self.canv.create_oval(event.x - self.brush_size,
+                              event.y - self.brush_size,
+                              event.x + self.brush_size,
+                              event.y + self.brush_size,
+                              fill=self.brush_color, outline=self.brush_color)
 
+    def set_color_copy(self, new_color):
+        self.brush_color = new_color
 
-    def end(self, event):
-        self.ends.append(self.n_action - 1)
-        print("end ", self.n_action - 1)
+    def set_size_copy(self, new_size):
+        self.brush_size = new_size
+
+    def clear_copy(self):
+        self.canv.delete("all")
 
 
 def main():

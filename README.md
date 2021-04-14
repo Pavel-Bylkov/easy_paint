@@ -8,3 +8,6 @@
 
 полезная информация о Tkinter и Canvas
 https://younglinux.info/tkinter/canvas
+
+https://www.python-course.eu/tkinter_events_binds.php
+
