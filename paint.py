@@ -1,7 +1,5 @@
 from tkinter import *
-
-from PIL import ImageGrab
-
+from PIL import ImageGrab, ImageTk, Image   # pip install pillow
 
 
 # Todo Реализовать инструмент Заливка
@@ -99,32 +97,35 @@ class QueueActions():
         self.n_action = 0
 
     def add(self, action, value):
-        self.actions[self.n_action] = {action: value}
+        self.actions[self.n_action] = (action, value)
         self.n_action += 1
 
-    def start(self, event):
+    def add_start_draw(self, event):
         self.starts.append(self.n_action)
 
-    def end(self, event):
+    def add_end_draw(self, event):
         self.ends.append(self.n_action - 1)
 
-    def is_empty(self):
-        return self.n_action == 0
+    def is_not_empty(self):
+        return self.n_action > 0
 
-    def undo(self):
+    def remove_last(self):
         self.n_action -= 1
-        if 'draw' in self.actions[self.n_action]:
+        action, value = self.actions[self.n_action] if self.n_action in self.actions else (None, None)
+        if 'draw' == action:
             self.n_action = self.starts.pop()
             for n_do in range(self.n_action, self.ends.pop() + 1):
                 del self.actions[n_do]
         else:
             del self.actions[self.n_action]
 
-    def has_action(self, n_do, action):
-        return action in self.actions[n_do]
+    def get_action_value(self, n_do):
+        if n_do in self.actions:
+            return self.actions[n_do]
+        return None, None
 
-    def get_value(self, n_do, action):
-        return self.actions[n_do][action]
+    def len(self):
+        return self.n_action
 
 
 class Paint(Frame):
@@ -149,14 +150,21 @@ class Paint(Frame):
         y1 = y + self.canv.winfo_height()
         ImageGrab.grab().crop((x, y, x1, y1)).save(filename)
 
+    def load_image(self, filename):  # https://www.c-sharpcorner.com/Blogs/basics-for-displaying-image-in-tkinter-python
+        # https://stackoverflow.com/questions/49308962/how-to-insert-an-image-using-canvas-in-tkinter
+        self.queve.add('load', 0)
+        img = ImageTk.PhotoImage(Image.open("ball.png"))
+        self.canv.create_image(self.canv.winfo_width(), self.canv.winfo_height(), anchor=NW, image=img)
+        self.canv.image = img
+
     def start_size(self):
         self.brush_size = 10
         self.brush_color = "black"
 
     def connects(self):
-        self.canv.bind("<Button-1>", self.queve.start)
+        self.canv.bind("<Button-1>", self.queve.add_start_draw)
         self.canv.bind("<B1-Motion>", self.draw)
-        self.canv.bind("<ButtonRelease-1>", self.queve.end)
+        self.canv.bind("<ButtonRelease-1>", self.queve.add_end_draw)
         self.set_any_color.bind('<Return>', self.callback)
 
     def setGUI(self):
@@ -223,47 +231,45 @@ class Paint(Frame):
 
     def draw(self, event):
         self.queve.add('draw', My_event(event.x, event.y))
-        self.canv.create_oval(event.x - self.brush_size,
-                              event.y - self.brush_size,
-                              event.x + self.brush_size,
-                              event.y + self.brush_size,
-                              fill=self.brush_color, outline=self.brush_color)
+        self.draw_copy(event)
 
     def set_color(self, new_color):
         self.queve.add('set_color', new_color)
-        self.brush_color = new_color
+        self.set_color_copy(new_color)
 
     def callback(self, event):
         text = self.sv.get()
         if text in COLORS:
             self.set_color(text)
-        try:
-            if ('#' == text[0] and len(text) == 7):
-                self.set_color(text)
-        except:
-            pass
+        else:
+            try:
+                if ('#' == text[0] and len(text) == 7):
+                    self.set_color(text)
+            except:
+                pass
 
     def set_size(self, new_size):
         self.queve.add('set_size', new_size)
-        self.brush_size = new_size
+        self.set_size_copy(new_size)
 
     def clear(self):
-        self.queve.add('clear', 1)
-        self.canv.delete("all")
+        self.queve.add('clear', 0)
+        self.clear_copy()
 
     def undo(self):
-        if not self.queve.is_empty():
-            self.queve.undo()
+        if self.queve.is_not_empty():
+            self.queve.remove_last()
             self.start_size()
             self.canv.delete("all")
-            for n_do in range(self.queve.n_action):
-                if self.queve.has_action(n_do, 'draw'):
-                    self.draw_copy(self.queve.get_value(n_do, 'draw'))
-                if self.queve.has_action(n_do, 'set_color'):
-                    self.set_color_copy(self.queve.get_value(n_do, 'set_color'))
-                if self.queve.has_action(n_do, 'set_size'):
-                    self.set_size_copy(self.queve.get_value(n_do, 'set_size'))
-                if self.queve.has_action(n_do, 'clear'):
+            for n_do in range(self.queve.len()):
+                action, value = self.queve.get_action_value(n_do)
+                if action == 'draw':
+                    self.draw_copy(value)
+                elif action == 'set_color':
+                    self.set_color_copy(value)
+                elif action == 'set_size':
+                    self.set_size_copy(value)
+                elif action == 'clear':
                     self.clear_copy()
 
     def draw_copy(self, event):
