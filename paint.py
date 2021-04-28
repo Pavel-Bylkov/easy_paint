@@ -1,7 +1,7 @@
 from tkinter import *
 from tkinter import filedialog, colorchooser
 import io
-from PIL import ImageGrab, ImageTk, Image   # pip install pillow
+from PIL import ImageTk, Image   # pip install pillow
 from constants import COLORS
 
 # ToDo Доделать открытие файла (Открытие для редактирования)
@@ -236,14 +236,13 @@ class Paint(Frame):
         if fl != '':
             self.queve.add('load', 0)
             tmp_image = self.load_image(fl)
-            self.image = self.canv.create_image(self.canv.winfo_width(), self.canv.winfo_height(), image=tmp_image)
-            self.canv.grid(row=2, column=0, columnspan=12,
-                           padx=5, pady=5,
-                           sticky=E + W + S + N)
+            self.canv.image = tmp_image
+            self.canv.create_image(self.canv.winfo_width(), self.canv.winfo_height(), image=tmp_image, anchor=SE)
 
-    def load_image(self, filename):  # https://www.c-sharpcorner.com/Blogs/basics-for-displaying-image-in-tkinter-python
-        # https://stackoverflow.com/questions/49308962/how-to-insert-an-image-using-canvas-in-tkinter
-        img = ImageTk.PhotoImage(Image.open(filename))
+    def load_image(self, filename):
+        tmp_image = Image.open(filename)
+        tmp_image = tmp_image.resize((self.canv.winfo_width(), self.canv.winfo_height()), Image.ANTIALIAS)
+        img = ImageTk.PhotoImage(tmp_image)
         return img
 
     def onChoose(self):
