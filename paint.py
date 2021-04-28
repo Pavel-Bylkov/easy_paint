@@ -1,13 +1,10 @@
 from tkinter import *
-from tkinter import filedialog
-
+from tkinter import filedialog, colorchooser
+import io
 from PIL import ImageGrab, ImageTk, Image   # pip install pillow
 from constants import COLORS
-from choose_color import Example
 
-# Todo Реализовать инструмент Заливка
-# Todo Сохранение картинки на диск (Открытие для редактирования)
-# ToDo Доделать открытие файла
+# ToDo Доделать открытие файла (Открытие для редактирования)
 
 
 class MyEvent:
@@ -71,11 +68,9 @@ class Paint(Frame):
             filename += ".jpg"
         else:
             filename = "image.jpg"
-        x = self.parent.winfo_rootx() + self.canv.winfo_x()
-        y = self.parent.winfo_rooty() + self.canv.winfo_y()
-        x1 = x + self.canv.winfo_width()
-        y1 = y + self.canv.winfo_height()
-        ImageGrab.grab().crop((x, y, x1, y1)).save(filename)
+        ps = self.canv.postscript(colormode='color')
+        img = Image.open(io.BytesIO(ps.encode('utf-8')))
+        img.save(filename, 'jpeg')
 
     def save_image_dialog(self):
         ftypes = [('Графичиские файлы', '*.jpg'), ('Все файлы', '*')]
@@ -83,15 +78,14 @@ class Paint(Frame):
         fl = dlg.show()
 
         if fl != '':
-            x = self.parent.winfo_rootx() + self.canv.winfo_x()
-            y = self.parent.winfo_rooty() + self.canv.winfo_y()
-            x1 = x + self.canv.winfo_width()
-            y1 = y + self.canv.winfo_height()
-            ImageGrab.grab().crop((x, y, x1, y1)).save(fl)
+            ps = self.canv.postscript(colormode='color')
+            img = Image.open(io.BytesIO(ps.encode('utf-8')))
+            img.save(fl, 'jpeg')
 
     def start_size(self):
         self.brush_size = 10
         self.brush_color = "black"
+        self.color_frame.config(bg="black")
 
     def connects(self):
         self.canv.bind("<Button-1>", self.queve.add_start_draw)
@@ -110,10 +104,14 @@ class Paint(Frame):
         file_menu.add_command(label="Открыть", command=self.onOpen)
         file_menu.add_command(label="Сохранить как", command=self.save_image_dialog)
         menubar.add_cascade(label="Файл", menu=file_menu)
+        edit_menu = Menu(menubar)
+        edit_menu.add_command(label="Выбрать цвет", command=self.onChoose)
+        menubar.add_cascade(label="Редактировать", menu=edit_menu)
 
         self.canv = Canvas(self, bg="white")  # Создаем поле для рисования, устанавливаем белый фон
 
         color_lab = Label(self, text="Color: ")  # Создаем метку для кнопок изменения цвета кисти
+        self.color_frame = Frame(self, border=1, relief=SUNKEN, width=30, height=30)
         red_btn = Button(self, text="Red", width=10, command=lambda: self.set_color("red"),  bg='red', fg='black')
         # Создание кнопки:  Установка текста кнопки, задание ширины кнопки (10 символов)
         green_btn = Button(self, text="Green", width=10, command=lambda: self.set_color("green"), bg='green', fg='black')
@@ -148,14 +146,15 @@ class Paint(Frame):
         # растягивании всего окна
         color_lab.grid(row=0, column=0, padx=6)  # Устанавливаем созданную метку в первый ряд и первую
         # колонку, задаем горизонтальный отступ в 6 пикселей
-        red_btn.grid(row=0, column=1)  # Устанавливаем кнопку первый ряд, вторая колонка
-        green_btn.grid(row=0, column=2)
-        blue_btn.grid(row=0, column=3)
-        black_btn.grid(row=0, column=4)
-        white_btn.grid(row=0, column=5)
-        clear_btn.grid(row=0, column=6)
-        set_any_color_lb.grid(row=0, column=7)
-        self.set_any_color.grid(row=0, column=8, sticky=W)
+        self.color_frame.grid(row=0, column=1)
+        red_btn.grid(row=0, column=2)  # Устанавливаем кнопку первый ряд, вторая колонка
+        green_btn.grid(row=0, column=3)
+        blue_btn.grid(row=0, column=4)
+        black_btn.grid(row=0, column=5)
+        white_btn.grid(row=0, column=6)
+        clear_btn.grid(row=0, column=7)
+        set_any_color_lb.grid(row=0, column=8)
+        self.set_any_color.grid(row=0, column=9, sticky=W)
         size_lab.grid(row=1, column=0, padx=5)
         btn_1.grid(row=1, column=1)
         btn_2.grid(row=1, column=2)
@@ -221,6 +220,7 @@ class Paint(Frame):
 
     def set_color_copy(self, new_color):
         self.brush_color = new_color
+        self.color_frame.config(bg=new_color)
 
     def set_size_copy(self, new_size):
         self.brush_size = new_size
@@ -236,7 +236,7 @@ class Paint(Frame):
         if fl != '':
             self.queve.add('load', 0)
             tmp_image = self.load_image(fl)
-            self.canv.create_image(self.canv.winfo_width(), self.canv.winfo_height(), anchor=NW, image=tmp_image)
+            self.image = self.canv.create_image(self.canv.winfo_width(), self.canv.winfo_height(), image=tmp_image)
             self.canv.grid(row=2, column=0, columnspan=12,
                            padx=5, pady=5,
                            sticky=E + W + S + N)
@@ -245,6 +245,10 @@ class Paint(Frame):
         # https://stackoverflow.com/questions/49308962/how-to-insert-an-image-using-canvas-in-tkinter
         img = ImageTk.PhotoImage(Image.open(filename))
         return img
+
+    def onChoose(self):
+        (rgb, hx) = colorchooser.askcolor()
+        self.set_color(hx)
 
 
 def main():
